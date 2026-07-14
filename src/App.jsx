@@ -4,6 +4,8 @@ import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip } from 'recharts'
 const API_BASE_URL = 'https://sentinelnet-backend.onrender.com';
 
 function App() {
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [showLanding, setShowLanding] = useState(True);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false); 
   const [token, setToken] = useState(null);
@@ -25,6 +27,7 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     setAuthError('');
+    setIsAuthLoading(true); // START THE BUFFER
     
     const endpoint = isSignUp ? `${API_BASE_URL}/api/v1/register/` : `${API_BASE_URL}/api/token/`;
     
@@ -35,11 +38,9 @@ function App() {
         body: JSON.stringify({ username, password })
       });
 
-      // Parse the JSON data FIRST so we can read Django's specific error messages
       const data = await response.json();
 
       if (!response.ok) {
-        // Dynamically extract the exact validation error from Django
         if (isSignUp && data.username) {
           throw new Error(`Username Error: ${data.username[0]}`);
         } else if (data.detail) {
@@ -59,7 +60,9 @@ function App() {
         fetchProfile(data.access); 
       }
     } catch (error) {
-      setAuthError(error.message); // Displays the dynamic error to the UI
+      setAuthError(error.message);
+    } finally {
+      setIsAuthLoading(false); // STOP THE BUFFER REGARDLESS OF SUCCESS/FAIL
     }
   };
 
@@ -183,9 +186,67 @@ function App() {
     runFraudCheck([amount, ...syntheticMetadata]);
   };
 
+  if (showLanding && !isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center relative overflow-hidden font-sans">
+        
+        {/* Ambient Background Glow Effects */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px] pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-[128px] pointer-events-none"></div>
+
+        <div className="relative z-10 text-center max-w-4xl px-6 flex flex-col items-center">
+          
+          {/* Status Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-blue-400 mb-8 uppercase tracking-widest shadow-lg">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            </span>
+            SentinelNet Engine Online
+          </div>
+
+          {/* Hero Typography */}
+          <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight mb-6">
+            Secure Networks at the <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+              Speed of Thought.
+            </span>
+          </h1>
+
+          <p className="text-lg md:text-xl text-slate-400 mb-12 leading-relaxed max-w-2xl">
+            Enterprise-grade artificial intelligence for real-time financial fraud interception. Deploy predictive modeling and automated budget advisory directly to your data stream.
+          </p>
+
+          {/* Call to Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto">
+            <button
+              onClick={() => { setShowLanding(false); setIsSignUp(true); }}
+              className="px-8 py-4 w-full sm:w-auto rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold tracking-wide transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] active: scale-95"
+            >
+              INITIALIZE OPERATOR
+            </button>
+            <button
+              onClick={() => { setShowLanding(false); setIsSignUp(false); }}
+              className="px-8 py-4 w-full sm:w-auto rounded-lg bg-slate-900 border border-slate-700 hover:border-slate-500 hover:bg-slate-800 text-white font-bold tracking-wide transition-all active: scale-95"
+            >
+              SYSTEM LOGIN
+            </button>
+          </div>
+          
+        </div>
+      </div>
+    );
+  }
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans text-slate-200">
+        <button 
+          onClick={() => setShowLanding(true)}
+          className="mb-6 text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+        >
+          ← Return to SentinelNet Home
+        </button>
         <div className="max-w-md w-full bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-2xl">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white">System Locked</h1>
@@ -215,8 +276,19 @@ function App() {
               </p>
             )}
             
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)]">
-              {isSignUp ? 'REGISTER OPERATOR' : 'INITIALIZE CONNECTION'}
+            <button 
+              type="submit" 
+              disabled={isAuthLoading}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex justify-center items-center gap-2"
+            >
+              {isAuthLoading ? (
+                <>
+                  <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                  AUTHENTICATING...
+                </>
+              ) : (
+                isSignUp ? 'REGISTER OPERATOR' : 'INITIALIZE CONNECTION'
+              )}
             </button>
           </form>
           
@@ -242,9 +314,9 @@ function App() {
           <p className="text-xs text-slate-400 font-mono mt-1">Authenticated Operator: {username.toUpperCase()} | Secure JWT Connection Active</p>
         </div>
         <button 
-          onClick={() => { setIsLoggedIn(false); setToken(null); setHistory([]); setPrediction(null); }}
-          className="text-sm font-medium text-slate-400 hover:text-red-400 transition-colors px-4 py-2 rounded border border-transparent hover:border-red-900/50 hover:bg-red-950/30"
-        >
+            onClick={() => { setIsLoggedIn(false); setToken(null); setHistory([]); setPrediction(null); setShowLanding(true); }}
+            className="text-sm font-medium text-slate-400 hover:text-red-400 transition-colors px-4 py-2 rounded border border-transparent hover:border-red-900/50 hover:bg-red-950/30"
+          >
           End Session
         </button>
       </header>
@@ -275,7 +347,7 @@ function App() {
                     
                     <button 
                       onClick={handleResetSpend} 
-                      className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider bg-red-950/40 text-red-500 border border-red-900/50 rounded hover:bg-red-900 hover:text-white transition-colors"
+                      className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider bg-red-950/40 text-red-500 border border-red-900/50 rounded hover:bg-red-900 hover:text-white transition-all active:scale-90"
                     >
                       Reset
                     </button>
