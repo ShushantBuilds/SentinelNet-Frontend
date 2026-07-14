@@ -5,7 +5,7 @@ const API_BASE_URL = 'https://sentinelnet-backend.onrender.com';
 
 function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
-  const [showLanding, setShowLanding] = useState(True);
+  const [showLanding, setShowLanding] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false); 
   const [token, setToken] = useState(null);
