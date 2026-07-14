@@ -76,28 +76,27 @@ function App() {
   };
 
   const handleResetSpend = async () => {
-  try {
-    const token = localStorage.getItem('token'); // Or wherever your JWT token is stored
-    const response = await fetch(`${API_BASE_URL}/api/v1/profile/`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    try {
+      // Use the React state 'token', not localStorage
+      const response = await fetch(`${API_BASE_URL}/api/v1/profile/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      // Update your local React state variable representing total spend to 0
-      setTotalSpend(0); 
-      alert("Spend metrics successfully reset!");
-    } else {
-      console.error("Failed to reset spend metrics");
+      if (response.ok) {
+        // Force the UI to instantly display 0 and clear the live audit log
+        setPrediction(prev => prev ? { ...prev, total_spent: 0, advisory: "Secure: Spend metrics have been reset." } : null);
+        setHistory([]); 
+      } else {
+        console.error("Failed to reset spend metrics");
+      }
+    } catch (error) {
+      console.error("Error connecting to server:", error);
     }
-  } catch (error) {
-    console.error("Error connecting to server:", error);
-  }
-};
+  };
 
   const updateBudget = async (e) => {
     e.preventDefault();
@@ -267,13 +266,20 @@ function App() {
               {/* NEW: Dynamic Total Spent Tracker */}
               {prediction && prediction.total_spent !== undefined && (
                 <div className="mb-5 pt-4 border-t border-slate-800">
-                  <span className="text-xs text-slate-500 block mb-1">Total Accumulated Spend</span>
-                  <span className={`text-2xl font-mono tracking-tight ${prediction.total_spent > monthlyBudget ? 'text-amber-500' : 'text-emerald-500'}`}>
-                    ${parseFloat(prediction.total_spent).toLocaleString(undefined, {minimumFractionDigits: 2})}
-                  </span>
-                  <button onClick={handleResetSpend} className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition">
-                    Reset Spend
-                  </button>
+                  <span className="text-xs text-slate-500 block mb-2">Total Accumulated Spend</span>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className={`text-2xl font-mono tracking-tight ${prediction.total_spent > monthlyBudget ? 'text-amber-500' : 'text-emerald-500'}`}>
+                      ${parseFloat(prediction.total_spent).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                    </span>
+                    
+                    <button 
+                      onClick={handleResetSpend} 
+                      className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider bg-red-950/40 text-red-500 border border-red-900/50 rounded hover:bg-red-900 hover:text-white transition-colors"
+                    >
+                      Reset
+                    </button>
+                  </div>
                 </div>
               )}
 
