@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip } from 'recharts'
 
+const API_BASE_URL = 'https://sentinelnet-backend.onrender.com';
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false); 
@@ -24,7 +26,7 @@ function App() {
     e.preventDefault();
     setAuthError('');
     
-    const endpoint = isSignUp ? 'http://127.0.0.1:8000/api/v1/register/' : 'http://127.0.0.1:8000/api/token/';
+    const endpoint = isSignUp ? `${API_BASE_URL}/api/v1/register/` : `${API_BASE_URL}/api/token/`;
     
     try {
       const response = await fetch(endpoint, {
@@ -63,7 +65,7 @@ function App() {
 
   const fetchProfile = async (currentToken) => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/profile/', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/profile/`, {
         headers: { 'Authorization': `Bearer ${currentToken}` }
       });
       const data = await response.json();
@@ -77,7 +79,7 @@ function App() {
     e.preventDefault();
     if (!newBudgetInput) return;
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/profile/', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/profile/`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -97,7 +99,7 @@ function App() {
   const runFraudCheck = async (featuresArray) => {
     setStatus('loading');
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/predict/', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/predict/`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
