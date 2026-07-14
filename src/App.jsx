@@ -238,68 +238,77 @@ function App() {
     );
   }
 
-  if (!isLoggedIn) {
+  if (!isLoggedIn && !showLanding) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans text-slate-200">
-        <button 
-          onClick={() => setShowLanding(true)}
-          className="mb-6 text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2"
-        >
-          ← Return to SentinelNet Home
-        </button>
-        <div className="max-w-md w-full bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-2xl">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white">System Locked</h1>
-            <p className="text-slate-400 mt-2">{isSignUp ? 'Register a new Operator ID' : 'Enter credentials to access the Engine'}</p>
-          </div>
-          <form onSubmit={handleAuth} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">Operator ID (Username)</label>
-              <input 
-                type="text" value={username} onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">Passcode</label>
-              <input 
-                type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                required
-              />
-            </div>
-            
-            {authError && (
-              <p className={`text-sm p-3 rounded border text-center ${authError.includes('successful') ? 'bg-emerald-900/20 border-emerald-500/50 text-emerald-400' : 'bg-red-900/20 border-red-500/50 text-red-400'}`}>
-                {authError}
-              </p>
-            )}
-            
-            <button 
-              type="submit" 
-              disabled={isAuthLoading}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex justify-center items-center gap-2"
-            >
-              {isAuthLoading ? (
-                <>
-                  <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
-                  AUTHENTICATING...
-                </>
-              ) : (
-                isSignUp ? 'REGISTER OPERATOR' : 'INITIALIZE CONNECTION'
-              )}
-            </button>
-          </form>
+        
+        {/* NEW: The Alignment Wrapper */}
+        <div className="max-w-md w-full flex flex-col">
           
-          <div className="mt-6 text-center">
-            <button 
-              onClick={() => { setIsSignUp(!isSignUp); setAuthError(''); setPassword(''); }}
-              className="text-sm text-slate-400 hover:text-white transition-colors"
-            >
-              {isSignUp ? "Already have an ID? Authenticate here." : "Need an account? Register new Operator."}
-            </button>
+          <button 
+            onClick={() => setShowLanding(true)}
+            className="mb-4 text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2 w-fit active:scale-95"
+          >
+            ← Return to SentinelNet Home
+          </button>
+          
+          {/* Notice max-w-md was removed from here, as the parent wrapper now handles the width */}
+          <div className="w-full bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-2xl">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-white">System Locked</h1>
+              <p className="text-slate-400 mt-2">{isSignUp ? 'Register a new Operator ID' : 'Enter credentials to access the Engine'}</p>
+            </div>
+            
+            <form onSubmit={handleAuth} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-2">Operator ID (Username)</label>
+                <input 
+                  type="text" value={username} onChange={(e) => setUsername(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-2">Passcode</label>
+                <input 
+                  type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  required
+                />
+              </div>
+              
+              {authError && (
+                <p className={`text-sm p-3 rounded border text-center ${authError.includes('successful') ? 'bg-emerald-900/20 border-emerald-500/50 text-emerald-400' : 'bg-red-900/20 border-red-500/50 text-red-400'}`}>
+                  {authError}
+                </p>
+              )}
+              
+              <button 
+                type="submit" 
+                disabled={isAuthLoading}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex justify-center items-center gap-2"
+              >
+                {isAuthLoading ? (
+                  <>
+                    <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                    AUTHENTICATING...
+                  </>
+                ) : (
+                  isSignUp ? 'REGISTER OPERATOR' : 'INITIALIZE CONNECTION'
+                )}
+              </button>
+            </form>
+            
+            <div className="mt-6 text-center">
+              <button 
+                onClick={() => { setIsSignUp(!isSignUp); setAuthError(''); setPassword(''); }}
+                className="text-sm text-slate-400 hover:text-white transition-colors"
+              >
+                {isSignUp ? "Already have an ID? Authenticate here." : "Need an account? Register new Operator."}
+              </button>
+            </div>
           </div>
+
         </div>
       </div>
     );
