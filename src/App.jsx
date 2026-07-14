@@ -75,6 +75,30 @@ function App() {
     }
   };
 
+  const handleResetSpend = async () => {
+  try {
+    const token = localStorage.getItem('token'); // Or wherever your JWT token is stored
+    const response = await fetch(`${API_BASE_URL}/api/v1/profile/`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      // Update your local React state variable representing total spend to 0
+      setTotalSpend(0); 
+      alert("Spend metrics successfully reset!");
+    } else {
+      console.error("Failed to reset spend metrics");
+    }
+  } catch (error) {
+    console.error("Error connecting to server:", error);
+  }
+};
+
   const updateBudget = async (e) => {
     e.preventDefault();
     if (!newBudgetInput) return;
@@ -247,6 +271,9 @@ function App() {
                   <span className={`text-2xl font-mono tracking-tight ${prediction.total_spent > monthlyBudget ? 'text-amber-500' : 'text-emerald-500'}`}>
                     ${parseFloat(prediction.total_spent).toLocaleString(undefined, {minimumFractionDigits: 2})}
                   </span>
+                  <button onClick={handleResetSpend} className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition">
+                    Reset Spend
+                  </button>
                 </div>
               )}
 
