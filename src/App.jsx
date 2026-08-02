@@ -1,4 +1,5 @@
-import { useState } from 'react'
+/* global chrome */
+import { useState, useEffect } from 'react'
 
 const API_BASE_URL = 'https://sentinelnet-backend.onrender.com';
 
@@ -21,6 +22,19 @@ function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([{ role: 'system', content: 'SentinelNet Shield active. Paste a URL or ask me about a store.' }]);
   const [currentChatMessage, setCurrentChatMessage] = useState('');
+
+  useEffect(() => {
+  // Check if running inside Chrome Extension environment
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.url) {
+        // Strip out protocol (https://) for a cleaner UI display
+        const cleanUrl = tabs[0].url.replace(/^https?:\/\//, '');
+        setCurrentUrl(cleanUrl);
+      }
+    });
+  }
+}, []);
 
   const handleAuth = async (e) => {
     e.preventDefault();

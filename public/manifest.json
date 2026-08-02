@@ -9,11 +9,12 @@
   },
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "icons": {
-    "16": "vite.svg",
-    "48": "vite.svg",
-    "128": "vite.svg"
+    "16": "fraud-detection.png",
+    "48": "fraud-detection.png",
+    "128": "fraud-detection.png"
   }
 }
