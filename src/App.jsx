@@ -27,7 +27,7 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     setAuthError('');
-    setIsAuthLoading(true); // START THE BUFFER
+    setIsAuthLoading(true); 
     
     const endpoint = isSignUp ? `${API_BASE_URL}/api/v1/register/` : `${API_BASE_URL}/api/token/`;
     
@@ -62,7 +62,7 @@ function App() {
     } catch (error) {
       setAuthError(error.message);
     } finally {
-      setIsAuthLoading(false); // STOP THE BUFFER REGARDLESS OF SUCCESS/FAIL
+      setIsAuthLoading(false); 
     }
   };
 
@@ -80,7 +80,6 @@ function App() {
 
   const handleResetSpend = async () => {
     try {
-      // Use the React state 'token', not localStorage
       const response = await fetch(`${API_BASE_URL}/api/v1/profile/`, {
         method: 'DELETE',
         headers: {
@@ -90,7 +89,6 @@ function App() {
       });
 
       if (response.ok) {
-        // Force the UI to instantly display 0 and clear the live audit log
         setPrediction(prev => prev ? { ...prev, total_spent: 0, advisory: "Secure: Spend metrics have been reset." } : null);
         setHistory([]); 
       } else {
@@ -166,7 +164,7 @@ function App() {
     let intervalId;
     if (mode === 'stream' && isLoggedIn && token) {
       intervalId = setInterval(() => {
-        const randomAmount = parseFloat((Math.random() * 500).toFixed(2)); // Lowered random amounts slightly for realistic budget tracking
+        const randomAmount = parseFloat((Math.random() * 500).toFixed(2)); 
         const metadata = Array.from({ length: 29 }, () => Math.random());
         runFraudCheck([randomAmount, ...metadata]);
         setCurrentAmount(randomAmount);
@@ -186,99 +184,89 @@ function App() {
     runFraudCheck([amount, ...syntheticMetadata]);
   };
 
+  // --- VIEW 1: LANDING PAGE ---
   if (showLanding && !isLoggedIn) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center relative overflow-hidden font-sans">
+      <div className="min-h-screen bg-[#09090b] text-zinc-50 flex flex-col justify-center items-center selection:bg-zinc-800" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');`}</style>
         
-        {/* Ambient Background Glow Effects */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[128px] pointer-events-none"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-[128px] pointer-events-none"></div>
-
-        <div className="relative z-10 text-center max-w-4xl px-6 flex flex-col items-center">
-          
-          {/* Status Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-blue-400 mb-8 uppercase tracking-widest shadow-lg">
+        <div className="text-center max-w-4xl px-6 flex flex-col items-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/50 text-[11px] font-medium text-zinc-400 mb-10 uppercase tracking-widest">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
             </span>
             SentinelNet Engine Online
           </div>
 
-          {/* Hero Typography */}
-          <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight mb-6">
+          <h1 className="text-5xl md:text-7xl font-semibold tracking-tighter text-white mb-6 leading-tight">
             Secure Networks at the <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-              Speed of Thought.
-            </span>
+            <span className="text-zinc-500">Speed of Thought.</span>
           </h1>
 
-          <p className="text-lg md:text-xl text-slate-400 mb-12 leading-relaxed max-w-2xl">
+          <p className="text-lg md:text-xl text-zinc-400 mb-12 leading-relaxed max-w-2xl font-light">
             Enterprise-grade artificial intelligence for real-time financial fraud interception. Deploy predictive modeling and automated budget advisory directly to your data stream.
           </p>
 
-          {/* Call to Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-5 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
             <button
               onClick={() => { setShowLanding(false); setIsSignUp(true); }}
-              className="px-8 py-4 w-full sm:w-auto rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold tracking-wide transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] active: scale-95"
+              className="px-8 py-3 w-full sm:w-auto rounded-md bg-white text-black text-sm font-medium transition-colors hover:bg-zinc-200 active:scale-95 flex items-center justify-center"
             >
-              INITIALIZE OPERATOR
+              Initialize Operator
             </button>
             <button
               onClick={() => { setShowLanding(false); setIsSignUp(false); }}
-              className="px-8 py-4 w-full sm:w-auto rounded-lg bg-slate-900 border border-slate-700 hover:border-slate-500 hover:bg-slate-800 text-white font-bold tracking-wide transition-all active: scale-95"
+              className="px-8 py-3 w-full sm:w-auto rounded-md bg-[#09090b] border border-zinc-800 text-white text-sm font-medium transition-colors hover:bg-zinc-900 active:scale-95 flex items-center justify-center"
             >
-              SYSTEM LOGIN
+              System Login
             </button>
           </div>
-          
         </div>
       </div>
     );
   }
 
+  // --- VIEW 2: AUTH GATE ---
   if (!isLoggedIn && !showLanding) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans text-slate-200">
-        
-        {/* NEW: The Alignment Wrapper */}
-        <div className="max-w-md w-full flex flex-col">
-          
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center p-4 text-zinc-100 selection:bg-zinc-800" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');`}</style>
+
+        <div className="max-w-[400px] w-full flex flex-col">
           <button 
             onClick={() => setShowLanding(true)}
-            className="mb-4 text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2 w-fit active:scale-95"
+            className="mb-8 text-xs font-medium text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-2 w-fit"
           >
             ← Return to SentinelNet Home
           </button>
           
-          {/* Notice max-w-md was removed from here, as the parent wrapper now handles the width */}
-          <div className="w-full bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-2xl">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-white">System Locked</h1>
-              <p className="text-slate-400 mt-2">{isSignUp ? 'Register a new Operator ID' : 'Enter credentials to access the Engine'}</p>
+          <div className="w-full bg-[#09090b] p-8 rounded-xl border border-zinc-800">
+            <div className="mb-8">
+              <h1 className="text-2xl font-semibold text-white tracking-tight">System Locked</h1>
+              <p className="text-sm text-zinc-400 mt-2 font-light">{isSignUp ? 'Register a new Operator ID' : 'Enter credentials to access the Engine'}</p>
             </div>
             
-            <form onSubmit={handleAuth} className="space-y-6">
+            <form onSubmit={handleAuth} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Operator ID (Username)</label>
+                <label className="block text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wide">Operator ID</label>
                 <input 
                   type="text" value={username} onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-[#09090b] border border-zinc-800 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all placeholder-zinc-700"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Passcode</label>
+                <label className="block text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wide">Passcode</label>
                 <input 
                   type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-[#09090b] border border-zinc-800 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
                   required
                 />
               </div>
               
               {authError && (
-                <p className={`text-sm p-3 rounded border text-center ${authError.includes('successful') ? 'bg-emerald-900/20 border-emerald-500/50 text-emerald-400' : 'bg-red-900/20 border-red-500/50 text-red-400'}`}>
+                <p className={`text-xs p-3 rounded-md border ${authError.includes('successful') ? 'bg-emerald-950/30 border-emerald-900/50 text-emerald-400' : 'bg-red-950/30 border-red-900/50 text-red-400'}`}>
                   {authError}
                 </p>
               )}
@@ -286,77 +274,78 @@ function App() {
               <button 
                 type="submit" 
                 disabled={isAuthLoading}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex justify-center items-center gap-2"
+                className="w-full bg-white text-black text-sm font-medium py-2.5 rounded-md transition-all hover:bg-zinc-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 mt-2"
               >
                 {isAuthLoading ? (
                   <>
-                    <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
-                    AUTHENTICATING...
+                    <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></span>
+                    Authenticating
                   </>
                 ) : (
-                  isSignUp ? 'REGISTER OPERATOR' : 'INITIALIZE CONNECTION'
+                  isSignUp ? 'Register Operator' : 'Initialize Connection'
                 )}
               </button>
             </form>
             
-            <div className="mt-6 text-center">
+            <div className="mt-6 pt-6 border-t border-zinc-800 text-center">
               <button 
                 onClick={() => { setIsSignUp(!isSignUp); setAuthError(''); setPassword(''); }}
-                className="text-sm text-slate-400 hover:text-white transition-colors"
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 {isSignUp ? "Already have an ID? Authenticate here." : "Need an account? Register new Operator."}
               </button>
             </div>
           </div>
-
         </div>
       </div>
     );
   }
 
+  // --- VIEW 3: DASHBOARD ---
   return (
-    <div className="h-screen w-screen bg-slate-950 text-slate-200 overflow-hidden flex flex-col font-sans">
+    <div className="h-screen w-screen bg-[#09090b] text-zinc-100 overflow-hidden flex flex-col selection:bg-zinc-800" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');`}</style>
       
-      <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center shrink-0">
+      {/* Header */}
+      <header className="bg-[#09090b] border-b border-zinc-800 px-6 py-4 flex justify-between items-center shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Fraud Intelligence Engine</h1>
-          <p className="text-xs text-slate-400 font-mono mt-1">Authenticated Operator: {username.toUpperCase()} | Secure JWT Connection Active</p>
+          <h1 className="text-lg font-semibold text-white tracking-tight">Fraud Intelligence Engine</h1>
+          <p className="text-[10px] text-zinc-500 font-mono mt-1 uppercase tracking-wider">Operator: {username} <span className="mx-2 text-zinc-700">|</span> Secured Connection</p>
         </div>
         <button 
             onClick={() => { setIsLoggedIn(false); setToken(null); setHistory([]); setPrediction(null); setShowLanding(true); }}
-            className="text-sm font-medium text-slate-400 hover:text-red-400 transition-colors px-4 py-2 rounded border border-transparent hover:border-red-900/50 hover:bg-red-950/30"
+            className="text-xs font-medium text-zinc-400 hover:text-white transition-colors px-3 py-1.5 rounded-md border border-zinc-800 hover:bg-zinc-900 active:scale-95"
           >
           End Session
         </button>
       </header>
 
       <main className="flex-1 overflow-hidden p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full max-w-[1600px] mx-auto">
           
           {/* COLUMN 1: CONTROLS & PROFILE */}
           <div className="lg:col-span-3 flex flex-col gap-6 h-full">
             
-            <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 shadow-lg flex-shrink-0 animate-fade-in border-t-4 border-t-blue-500">
-              <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Financial Profile</h2>
+            <div className="bg-[#121212] rounded-xl border border-zinc-800 p-5 flex-shrink-0">
+              <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest mb-6">Financial Profile</h2>
               
-              <div className="mb-4">
-                <span className="text-xs text-slate-500 block mb-1">Target Monthly Budget</span>
-                <span className="text-2xl font-mono text-white">${parseFloat(monthlyBudget).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+              <div className="mb-5">
+                <span className="text-xs text-zinc-500 block mb-1">Target Monthly Budget</span>
+                <span className="text-2xl font-semibold text-white tracking-tight">${parseFloat(monthlyBudget).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
               </div>
 
-              {/* NEW: Dynamic Total Spent Tracker */}
               {prediction && prediction.total_spent !== undefined && (
-                <div className="mb-5 pt-4 border-t border-slate-800">
-                  <span className="text-xs text-slate-500 block mb-2">Total Accumulated Spend</span>
+                <div className="mb-5 pt-5 border-t border-zinc-800/50">
+                  <span className="text-xs text-zinc-500 block mb-2">Accumulated Spend</span>
                   
                   <div className="flex justify-between items-center">
-                    <span className={`text-2xl font-mono tracking-tight ${prediction.total_spent > monthlyBudget ? 'text-amber-500' : 'text-emerald-500'}`}>
+                    <span className={`text-xl font-semibold tracking-tight ${prediction.total_spent > monthlyBudget ? 'text-amber-500' : 'text-zinc-300'}`}>
                       ${parseFloat(prediction.total_spent).toLocaleString(undefined, {minimumFractionDigits: 2})}
                     </span>
                     
                     <button 
                       onClick={handleResetSpend} 
-                      className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider bg-red-950/40 text-red-500 border border-red-900/50 rounded hover:bg-red-900 hover:text-white transition-all active:scale-90"
+                      className="px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-400 bg-zinc-900 border border-zinc-800 rounded hover:text-white hover:border-zinc-600 transition-colors active:scale-95"
                     >
                       Reset
                     </button>
@@ -364,38 +353,38 @@ function App() {
                 </div>
               )}
 
-              <form onSubmit={updateBudget} className="flex gap-2 mt-4">
+              <form onSubmit={updateBudget} className="flex gap-2 mt-6">
                 <input 
                   type="number" step="1" placeholder="New Budget" 
                   value={newBudgetInput} onChange={(e) => setNewBudgetInput(e.target.value)}
-                  className="flex-1 bg-slate-950 border border-slate-700 rounded text-sm px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="flex-1 bg-[#09090b] border border-zinc-800 rounded-md text-sm px-3 py-1.5 text-white focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all placeholder-zinc-700"
                 />
-                <button type="submit" className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 text-sm rounded border border-slate-700 transition-colors">
+                <button type="submit" className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 text-xs font-medium rounded-md transition-colors active:scale-95">
                   Update
                 </button>
               </form>
             </div>
 
-            <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 shadow-lg flex-shrink-0">
-              <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Engine Mode</h2>
-              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 mb-4">
-                <button onClick={() => setMode('stream')} className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${mode === 'stream' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:text-white'}`}>Live Stream</button>
-                <button onClick={() => setMode('manual')} className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${mode === 'manual' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:text-white'}`}>Manual</button>
+            <div className="bg-[#121212] rounded-xl border border-zinc-800 p-5 flex-shrink-0">
+              <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest mb-4">Engine Mode</h2>
+              <div className="flex bg-[#09090b] p-1 rounded-md border border-zinc-800">
+                <button onClick={() => setMode('stream')} className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${mode === 'stream' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>Live Stream</button>
+                <button onClick={() => setMode('manual')} className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${mode === 'manual' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>Manual</button>
               </div>
             </div>
 
             {mode === 'manual' && (
-              <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 shadow-lg flex-shrink-0 animate-fade-in">
-                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Manual Input</h2>
-                <form onSubmit={handleManualSubmit} className="space-y-4">
+              <div className="bg-[#121212] rounded-xl border border-zinc-800 p-5 flex-shrink-0 animate-fade-in">
+                <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest mb-4">Manual Scan</h2>
+                <form onSubmit={handleManualSubmit} className="space-y-3">
                   <input 
                     type="number" step="0.01" placeholder="Amount ($)" 
                     value={transactionAmount} onChange={(e) => setTransactionAmount(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#09090b] border border-zinc-800 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-all"
                     required
                   />
-                  <button type="submit" disabled={status === 'loading'} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-medium transition-all disabled:opacity-50">
-                    {status === 'loading' ? 'Analyzing...' : 'Execute Scan'}
+                  <button type="submit" disabled={status === 'loading'} className="w-full bg-white text-black py-2 rounded-md text-xs font-medium transition-colors hover:bg-zinc-200 active:scale-95 disabled:opacity-50">
+                    {status === 'loading' ? 'Processing...' : 'Execute Request'}
                   </button>
                 </form>
               </div>
@@ -403,79 +392,92 @@ function App() {
           </div>
 
           {/* COLUMN 2: AI ANALYSIS RESULTS */}
-          <div className="lg:col-span-4 bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-lg flex flex-col h-full overflow-y-auto">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 shrink-0">Live AI Analysis</h2>
+          <div className="lg:col-span-4 bg-[#121212] rounded-xl border border-zinc-800 p-6 flex flex-col h-full overflow-y-auto">
+            <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest mb-6 shrink-0">Analysis Pipeline</h2>
             
             <div className="flex-1 flex flex-col justify-center min-h-[400px]">
               {status === 'idle' && (
                 <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                  <div className="h-12 w-12 rounded-lg border border-slate-700 bg-slate-800 rotate-45 flex items-center justify-center">
-                    <div className="h-3 w-3 rounded-full bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.8)] animate-pulse"></div>
+                  <div className="h-8 w-8 rounded-full border border-zinc-800 bg-[#09090b] flex items-center justify-center">
+                    <div className="h-1.5 w-1.5 rounded-full bg-zinc-600"></div>
                   </div>
-                  <p className="text-slate-500 text-xs font-mono uppercase">System on Standby</p>
+                  <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Awaiting Data</p>
                 </div>
               )}
 
+              {/* NEW SKELETON LOADER */}
               {status === 'loading' && (
-                <div className="flex flex-col items-center justify-center space-y-4">
-                   <div className="relative flex justify-center items-center h-16 w-16">
-                    <div className="absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-20 animate-ping"></div>
-                    <div className="relative inline-flex h-10 w-10 rounded-full border-4 border-slate-700 border-t-blue-500 animate-spin"></div>
+                <div className="w-full space-y-6 animate-pulse">
+                  <div className="pb-6 border-b border-zinc-800/50">
+                    <div className="h-2.5 w-24 bg-zinc-800 rounded mb-4"></div>
+                    <div className="h-10 w-48 bg-zinc-800 rounded"></div>
                   </div>
-                  <p className="text-blue-400 text-xs font-mono animate-pulse uppercase">Processing Matrix</p>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-end">
+                      <div className="h-2.5 w-28 bg-zinc-800 rounded"></div>
+                      <div className="h-4 w-12 bg-zinc-800 rounded"></div>
+                    </div>
+                    <div className="w-full h-1.5 bg-zinc-800 rounded-full"></div>
+                  </div>
+                  <div className="h-10 w-full bg-zinc-800/50 border border-zinc-800 rounded-md mt-6"></div>
+                  <div className="pt-4 mt-6 border-t border-zinc-800/50">
+                    <div className="h-2.5 w-32 bg-zinc-800 rounded mb-4"></div>
+                    <div className="grid grid-cols-10 gap-1">
+                      {[...Array(29)].map((_, i) => <div key={i} className="h-1.5 bg-zinc-800 rounded-[1px]"></div>)}
+                    </div>
+                  </div>
                 </div>
               )}
 
               {status === 'success' && prediction && currentAmount !== null && (
-                <div className="w-full space-y-5 animate-fade-in">
+                <div className="w-full space-y-6 animate-fade-in">
                   
-                  <div className="text-center p-6 rounded-xl bg-slate-950 border border-slate-800 shadow-inner">
-                    <span className="block text-xs font-mono tracking-wider text-slate-500 uppercase mb-2">Intercepted Amount</span>
-                    <span className="text-4xl font-bold text-white tracking-tight">
+                  <div className="pb-6 border-b border-zinc-800">
+                    <span className="block text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Payload Amount</span>
+                    <span className="text-4xl font-semibold tracking-tight text-white">
                       ${currentAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </span>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
-                      <span className="text-xs font-mono text-slate-400 uppercase">Risk Probability</span>
-                      <span className="text-xl font-mono font-bold text-white">{(prediction.fraud_probability * 100).toFixed(2)}%</span>
+                      <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">Risk Confidence</span>
+                      <span className="text-sm font-mono text-zinc-300">{(prediction.fraud_probability * 100).toFixed(2)}%</span>
                     </div>
-                    <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-                      <div className={`h-full rounded-full transition-all duration-700 ease-out ${
-                        (prediction.fraud_probability * 100) >= 60 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]' 
-                        : (prediction.fraud_probability * 100) >= 30 ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]'
-                        : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]'
+                    <div className="w-full h-1.5 bg-[#09090b] rounded-full overflow-hidden border border-zinc-800">
+                      <div className={`h-full rounded-full transition-all duration-500 ease-out ${
+                        (prediction.fraud_probability * 100) >= 60 ? 'bg-red-500' 
+                        : (prediction.fraud_probability * 100) >= 30 ? 'bg-amber-500'
+                        : 'bg-emerald-500'
                       }`} style={{ width: `${Math.max(prediction.fraud_probability * 100, 2)}%` }}></div>
                     </div>
                   </div>
                   
-                  <div className={`p-4 rounded-lg border text-center font-bold tracking-widest uppercase transition-colors duration-300 ${
-                    prediction.fraud_prediction === 1 ? 'bg-red-950/50 border-red-900 text-red-500' : 'bg-emerald-950/50 border-emerald-900 text-emerald-500'
+                  <div className={`py-3 rounded-md border text-center text-xs font-semibold tracking-widest uppercase transition-colors duration-300 ${
+                    prediction.fraud_prediction === 1 ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
                   }`}>
-                    {prediction.fraud_prediction === 1 ? '⚠️ FRAUD DETECTED' : '✅ APPROVED'}
+                    {prediction.fraud_prediction === 1 ? 'Risk Flagged' : 'Cleared'}
                   </div>
 
-                  {/* NEW: DYNAMIC ADVISORY MESSAGE */}
                   {prediction.advisory && (
-                    <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 text-sm shadow-inner">
-                      <h4 className="text-[10px] font-mono tracking-wider text-slate-400 uppercase mb-2">AI Advisory Insight</h4>
-                      <p className={`font-medium ${prediction.advisory.includes('Warning') ? 'text-amber-400' : prediction.advisory.includes('Blocked') ? 'text-red-400' : 'text-emerald-400'}`}>
+                    <div className="bg-[#09090b] border border-zinc-800 rounded-md p-4 text-xs">
+                      <h4 className="text-[10px] font-medium text-zinc-600 uppercase tracking-widest mb-1">System Advisory</h4>
+                      <p className={`font-medium ${prediction.advisory.includes('Warning') ? 'text-amber-500' : prediction.advisory.includes('Blocked') ? 'text-red-500' : 'text-zinc-300'}`}>
                         {prediction.advisory}
                       </p>
                     </div>
                   )}
 
-                  <div className="pt-2 border-t border-slate-800 mt-4">
-                    <h4 className="text-[10px] font-mono tracking-wider text-slate-500 uppercase mb-3 text-center">Node Analysis (29 Features)</h4>
-                    <div className="grid grid-cols-10 gap-1.5">
+                  <div className="pt-2">
+                    <h4 className="text-[10px] font-medium text-zinc-600 uppercase tracking-widest mb-3">Feature Nodes (29)</h4>
+                    <div className="grid grid-cols-10 gap-1">
                       {currentMetadata.map((val, idx) => {
                         const isAnomaly = prediction.fraud_prediction === 1 && (val > 1 || val < -1 || val > 0.8);
                         return (
-                          <div key={idx} className={`h-3 rounded-[2px] transition-all duration-300 ${
-                            isAnomaly ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse' 
-                            : prediction.fraud_prediction === 1 ? 'bg-slate-800' 
-                            : 'bg-emerald-500/20'
+                          <div key={idx} className={`h-1.5 rounded-[1px] transition-all duration-300 ${
+                            isAnomaly ? 'bg-red-500' 
+                            : prediction.fraud_prediction === 1 ? 'bg-zinc-700' 
+                            : 'bg-zinc-800'
                           }`}></div>
                         )
                       })}
@@ -486,40 +488,82 @@ function App() {
             </div>
           </div>
 
-          {/* COLUMN 3: AUDIT LOG */}
-          <div className="lg:col-span-5 bg-slate-900 rounded-xl border border-slate-800 flex flex-col h-full overflow-hidden shadow-lg">
-            <div className="p-5 border-b border-slate-800 shrink-0 bg-slate-900/50">
-               <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Live Audit Log</h2>
+          {/* COLUMN 3: LIVE CHART & AUDIT LOG */}
+          <div className="lg:col-span-5 bg-[#121212] rounded-xl border border-zinc-800 flex flex-col h-full overflow-hidden">
+            
+            {/* NEW LIVE RECHARTS GRAPH */}
+            <div className="h-48 w-full border-b border-zinc-800 p-5 shrink-0 flex flex-col bg-[#09090b]">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">Risk Velocity Chart</h2>
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[9px] text-zinc-600 font-mono uppercase tracking-widest">Live Sync</span>
+                </div>
+              </div>
+
+              <div className="flex-1 w-full relative">
+                {history.length === 0 ? (
+                  <div className="absolute inset-0 flex items-center justify-center text-zinc-700 text-[10px] uppercase tracking-widest font-medium">Awaiting Data Points</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={history}>
+                      <Line 
+                        type="monotone" 
+                        dataKey="risk" 
+                        stroke="#10b981" 
+                        strokeWidth={1.5} 
+                        dot={false} 
+                        activeDot={{ r: 4, fill: "#09090b", stroke: "#10b981", strokeWidth: 2 }} 
+                      />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#09090b', border: '1px solid #27272a', borderRadius: '6px', fontSize: '11px', color: '#e4e4e7' }}
+                        itemStyle={{ color: '#e4e4e7' }}
+                        labelStyle={{ display: 'none' }}
+                        formatter={(value) => [`${value}%`, 'Risk Score']}
+                      />
+                      <YAxis hide domain={[0, 100]} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* TABLE LOGS */}
+            <div className="p-4 border-b border-zinc-800 shrink-0 bg-[#121212] flex justify-between items-center">
+               <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">Network Audit Log</h2>
             </div>
             
             <div className="flex-1 overflow-y-auto p-0">
               {history.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-slate-600 text-sm">No transaction history.</div>
+                <div className="h-full flex items-center justify-center text-zinc-600 text-[10px] uppercase tracking-widest font-medium">No Request History</div>
               ) : (
-                <table className="w-full text-left text-xs text-slate-400 relative">
-                  <thead className="text-slate-500 uppercase bg-slate-950 sticky top-0 z-10 shadow-md">
+                <table className="w-full text-left text-xs text-zinc-400 relative">
+                  <thead className="bg-[#121212] text-[10px] font-medium text-zinc-600 uppercase tracking-widest sticky top-0 z-10">
                     <tr>
-                      <th className="px-4 py-3 font-medium tracking-wider">Time</th>
-                      <th className="px-4 py-3 font-medium tracking-wider">Amount</th>
-                      <th className="px-4 py-3 font-medium tracking-wider">Risk</th>
-                      <th className="px-4 py-3 font-medium tracking-wider text-right">Status</th>
+                      <th className="px-5 py-3 border-b border-zinc-800/50">Timestamp</th>
+                      <th className="px-5 py-3 border-b border-zinc-800/50">Amount</th>
+                      <th className="px-5 py-3 border-b border-zinc-800/50">Score</th>
+                      <th className="px-5 py-3 border-b border-zinc-800/50 text-right">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/50">
+                  <tbody className="divide-y divide-zinc-800/30">
                     {[...history].reverse().map((log, index) => (
-                      <tr key={index} className="hover:bg-slate-800/50 transition-colors">
-                        <td className="px-4 py-3 font-mono text-[11px] whitespace-nowrap">{log.time}</td>
-                        <td className="px-4 py-3 font-mono text-slate-300">
+                      <tr key={index} className="hover:bg-[#18181b] transition-colors">
+                        <td className="px-5 py-3 font-mono text-[10px] text-zinc-500 whitespace-nowrap">{log.time}</td>
+                        <td className="px-5 py-3 font-medium text-zinc-200">
                           ${log.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </td>
-                        <td className="px-4 py-3 font-mono">
-                          <span className={log.isFraud ? 'text-red-400' : 'text-emerald-400'}>{log.risk.toFixed(1)}%</span>
+                        <td className="px-5 py-3 font-mono text-[10px]">
+                          <span className={log.isFraud ? 'text-red-500' : 'text-zinc-500'}>{log.risk.toFixed(1)}%</span>
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={`px-2 py-1 text-[10px] uppercase font-bold tracking-wider rounded ${
-                            log.isFraud ? 'bg-red-950/50 text-red-500 border border-red-900/50' : 'bg-emerald-950/50 text-emerald-500 border border-emerald-900/50'
+                        <td className="px-5 py-3 text-right">
+                          <span className={`px-1.5 py-0.5 text-[9px] uppercase font-semibold tracking-widest rounded-sm ${
+                            log.isFraud ? 'bg-red-500/10 text-red-500' : 'bg-zinc-800/50 text-zinc-500'
                           }`}>
-                            {log.isFraud ? 'Blocked' : 'Pass'}
+                            {log.isFraud ? 'Deny' : 'Allow'}
                           </span>
                         </td>
                       </tr>
