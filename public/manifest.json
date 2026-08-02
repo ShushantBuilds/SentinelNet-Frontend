@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "SentinelNet Shield",
+  "version": "1.0.0",
+  "description": "AI-powered checkout protection against e-commerce fraud and phishing.",
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Open SentinelNet Shield"
+  },
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "icons": {
+    "16": "vite.svg",
+    "48": "vite.svg",
+    "128": "vite.svg"
+  }
+}
