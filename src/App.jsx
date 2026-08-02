@@ -1,4 +1,3 @@
-/* global chrome */
 import { useState, useEffect } from 'react'
 
 const API_BASE_URL = 'https://sentinelnet-backend.onrender.com';
@@ -15,26 +14,57 @@ function App() {
   const [status, setStatus] = useState('idle');
   const [prediction, setPrediction] = useState(null);
   
-  // Simulating the URL the browser is currently on
-  const [currentUrl, setCurrentUrl] = useState('checkout.sketchy-deals.com/pay'); 
+  const [currentUrl, setCurrentUrl] = useState(''); 
   const [checkoutAmount, setCheckoutAmount] = useState('');
 
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([{ role: 'system', content: 'SentinelNet Shield active. Paste a URL or ask me about a store.' }]);
+  const [chatMessages, setChatMessages] = useState([{ role: 'system', content: 'SentinelNet Shield active. Ask me about a store or checkout risk.' }]);
   const [currentChatMessage, setCurrentChatMessage] = useState('');
 
+  // --- NEW: AUTO-CURRENCY STATE ---
+  const [localeData, setLocaleData] = useState({ locale: 'en-US', currency: 'USD', symbol: '$' });
+
   useEffect(() => {
-  // Check if running inside Chrome Extension environment
-  if (typeof chrome !== 'undefined' && chrome.tabs) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.url) {
-        // Strip out protocol (https://) for a cleaner UI display
-        const cleanUrl = tabs[0].url.replace(/^https?:\/\//, '');
-        setCurrentUrl(cleanUrl);
-      }
-    });
-  }
-}, []);
+    // 1. EXTENSION AUTO-URL DETECTION
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.url) {
+          // Extract just the domain for a cleaner UI (e.g., amazon.in)
+          const domain = new URL(tabs[0].url).hostname.replace('www.', '');
+          setCurrentUrl(domain);
+        }
+      });
+    } else {
+      setCurrentUrl('demo-store.com'); // Fallback for local testing
+    }
+
+    // 2. DYNAMIC CURRENCY DETECTION
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const userLocale = navigator.language || 'en-US';
+    
+    let detectedCurrency = 'USD';
+    let detectedSymbol = '$';
+
+    if (timezone.includes('Calcutta') || timezone.includes('Kolkata') || userLocale.includes('IN')) {
+      detectedCurrency = 'INR'; detectedSymbol = '₹';
+    } else if (timezone.includes('Europe/London') || userLocale.includes('GB')) {
+      detectedCurrency = 'GBP'; detectedSymbol = '£';
+    } else if (timezone.includes('Europe')) {
+      detectedCurrency = 'EUR'; detectedSymbol = '€';
+    } else if (timezone.includes('Australia')) {
+      detectedCurrency = 'AUD'; detectedSymbol = 'A$';
+    }
+
+    setLocaleData({ locale: userLocale, currency: detectedCurrency, symbol: detectedSymbol });
+  }, []);
+
+  // Helper to format currency correctly based on detected country
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat(localeData.locale, {
+      style: 'currency',
+      currency: localeData.currency
+    }).format(amount);
+  };
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -52,7 +82,7 @@ function App() {
       
       if (isSignUp) {
         setIsSignUp(false);
-        setAuthError('Account created! Sign in to activate Shield.');
+        setAuthError('Account created! Sign in to activate.');
         setPassword('');
       } else {
         setToken(data.access);
@@ -70,7 +100,6 @@ function App() {
     setStatus('loading');
     const amount = parseFloat(checkoutAmount) || 0;
     
-    // Simulating risk based on amount for the demo
     const isSuspicious = amount > 5000 || currentUrl.includes('sketchy');
     const syntheticMetadata = Array.from({ length: 29 }, () => isSuspicious ? (Math.random() * 10) - 5 : Math.random() * 0.1);
     
@@ -114,156 +143,170 @@ function App() {
     }
   };
 
-  // --- EXTENSION CONTAINER ---
-  // Note: For demo purposes, this centers a 380x600 box on the screen to simulate the extension popup.
+  // --- FIXED EXTENSION CONTAINER ---
+  // The wrapper is removed. The root div is exactly 400x600.
   return (
-    <div className="w-[380px] h-[600px] bg-[#09090b] text-zinc-100 font-sans overflow-hidden flex flex-col relative selection:bg-zinc-800">
+    <div className="w-[400px] h-[600px] bg-[#09090b] text-zinc-100 font-sans flex flex-col relative overflow-hidden">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');`}</style>
       
+      {/* HEADER */}
       <div className="bg-[#121212] border-b border-zinc-800 p-4 flex justify-between items-center shrink-0">
-        
-        {/* HEADER */}
-        <div className="bg-[#121212] border-b border-zinc-800 p-4 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-blue-500 rounded-md flex items-center justify-center">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-            </div>
-            <h1 className="text-sm font-semibold text-white tracking-tight">SentinelNet Shield</h1>
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center shadow-lg shadow-blue-900/50">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
           </div>
-          {isLoggedIn && (
-            <button onClick={() => {setIsLoggedIn(false); setToken(null); setPrediction(null); setStatus('idle');}} className="text-[10px] text-zinc-500 hover:text-zinc-300">
-              Disable
-            </button>
-          )}
+          <h1 className="text-[15px] font-semibold text-white tracking-tight">SentinelNet Shield</h1>
         </div>
+        {isLoggedIn && (
+          <button onClick={() => {setIsLoggedIn(false); setToken(null); setPrediction(null); setStatus('idle');}} className="text-[11px] font-medium text-zinc-500 hover:text-white transition-colors border border-zinc-800 px-2.5 py-1 rounded-md bg-zinc-900">
+            Disable
+          </button>
+        )}
+      </div>
 
-        {/* AUTH GATE */}
-        {!isLoggedIn ? (
-          <div className="flex-1 p-6 flex flex-col justify-center">
-            <h2 className="text-lg font-semibold text-white mb-2">{isSignUp ? 'Create Shield Account' : 'Activate Shield'}</h2>
-            <p className="text-xs text-zinc-400 mb-6">Sign in to protect your browsing sessions.</p>
-            
-            <form onSubmit={handleAuth} className="space-y-4">
-              <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-[#121212] border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-zinc-500" required />
-              <input type="password" placeholder="Passcode" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-[#121212] border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-zinc-500" required />
-              {authError && <p className="text-[11px] text-red-400 p-2 bg-red-950/30 rounded">{authError}</p>}
-              <button type="submit" disabled={isAuthLoading} className="w-full bg-white text-black py-2.5 rounded-lg text-sm font-semibold mt-2 active:scale-[0.98]">
-                {isAuthLoading ? 'Authenticating...' : (isSignUp ? 'Register' : 'Connect')}
-              </button>
-            </form>
-            <button onClick={() => { setIsSignUp(!isSignUp); setAuthError(''); }} className="mt-4 text-xs text-zinc-500 w-full text-center hover:text-white">
-              {isSignUp ? "Already have an account?" : "Need an account?"}
+      {/* AUTH GATE */}
+      {!isLoggedIn ? (
+        <div className="flex-1 p-6 flex flex-col justify-center bg-gradient-to-b from-[#121212] to-[#09090b]">
+          <h2 className="text-xl font-semibold text-white mb-2">{isSignUp ? 'Create Account' : 'Activate Shield'}</h2>
+          <p className="text-xs text-zinc-400 mb-8 leading-relaxed">Secure your checkout sessions and prevent e-commerce fraud in real-time.</p>
+          
+          <form onSubmit={handleAuth} className="space-y-4">
+            <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-[#09090b] border border-zinc-800 rounded-lg px-4 py-3 text-sm text-white outline-none focus:border-blue-500 transition-colors" required />
+            <input type="password" placeholder="Passcode" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-[#09090b] border border-zinc-800 rounded-lg px-4 py-3 text-sm text-white outline-none focus:border-blue-500 transition-colors" required />
+            {authError && <p className="text-[11px] text-red-400 p-2.5 bg-red-950/30 border border-red-900/50 rounded-lg">{authError}</p>}
+            <button type="submit" disabled={isAuthLoading} className="w-full bg-white text-black py-3 rounded-lg text-sm font-semibold mt-4 hover:bg-zinc-200 transition-colors active:scale-[0.98]">
+              {isAuthLoading ? 'Authenticating...' : (isSignUp ? 'Register' : 'Connect Shield')}
             </button>
-          </div>
-        ) : (
-          /* MAIN EXTENSION UI */
-          <div className="flex-1 flex flex-col overflow-hidden">
-            
-            {!isChatOpen ? (
-              <div className="flex-1 p-5 overflow-y-auto">
-                <div className="mb-6">
-                  <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest block mb-2">Detected Checkout Page</label>
-                  <input 
-                    type="text" value={currentUrl} onChange={(e) => setCurrentUrl(e.target.value)}
-                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-300 font-mono outline-none focus:border-blue-500"
-                  />
+          </form>
+          <button onClick={() => { setIsSignUp(!isSignUp); setAuthError(''); }} className="mt-6 text-xs text-zinc-500 w-full text-center hover:text-white transition-colors">
+            {isSignUp ? "Already have an account? Sign in." : "Need an account? Register here."}
+          </button>
+        </div>
+      ) : (
+        /* MAIN EXTENSION UI */
+        <div className="flex-1 flex flex-col overflow-hidden">
+          
+          {!isChatOpen ? (
+            <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
+              
+              <div className="mb-6">
+                <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest block mb-2">Active Web Page</label>
+                <div className="w-full bg-[#121212] border border-zinc-800 rounded-lg px-3 py-3 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                  <span className="text-xs text-zinc-300 font-mono truncate">{currentUrl}</span>
                 </div>
+              </div>
 
-                <form onSubmit={runPageScan} className="mb-6">
-                  <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest block mb-2">Cart Total</label>
-                  <div className="flex gap-2">
+              <form onSubmit={runPageScan} className="mb-6">
+                <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest block mb-2">Detected Cart Total</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-semibold">{localeData.symbol}</span>
                     <input 
-                      type="number" step="0.01" placeholder="$0.00" value={checkoutAmount} onChange={(e) => setCheckoutAmount(e.target.value)}
-                      className="flex-1 bg-[#121212] border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-zinc-500" required
+                      type="number" step="0.01" placeholder="0.00" value={checkoutAmount} onChange={(e) => setCheckoutAmount(e.target.value)}
+                      className="w-full bg-[#121212] border border-zinc-800 rounded-lg pl-8 pr-3 py-3 text-sm text-white outline-none focus:border-blue-500 transition-colors" required
                     />
-                    <button type="submit" disabled={status === 'loading'} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50">
-                      Scan
-                    </button>
                   </div>
-                </form>
+                  <button type="submit" disabled={status === 'loading'} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-lg text-sm font-semibold transition-all active:scale-95 disabled:opacity-50">
+                    Scan
+                  </button>
+                </div>
+              </form>
 
-                {status === 'loading' && (
-                  <div className="flex flex-col items-center justify-center py-10 space-y-3">
-                    <div className="w-5 h-5 border-2 border-zinc-700 border-t-blue-500 rounded-full animate-spin"></div>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Analyzing Metadata...</p>
+              {status === 'loading' && (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="relative flex h-8 w-8">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-30"></span>
+                    <span className="relative inline-flex rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent animate-spin"></span>
                   </div>
-                )}
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">Intercepting Network...</p>
+                </div>
+              )}
 
-                {status === 'success' && prediction && (
-                  <div className={`p-4 rounded-xl border animate-fade-in ${
-                    prediction.shield_status === 'danger' ? 'bg-red-950/20 border-red-900/50' :
-                    prediction.shield_status === 'warning' ? 'bg-amber-950/20 border-amber-900/50' :
-                    'bg-emerald-950/20 border-emerald-900/50'
-                  }`}>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className={`text-[10px] font-bold uppercase tracking-wider ${
+              {status === 'success' && prediction && (
+                <div className={`p-5 rounded-xl border animate-fade-in shadow-2xl ${
+                  prediction.shield_status === 'danger' ? 'bg-red-950/20 border-red-900/50 shadow-red-900/20' :
+                  prediction.shield_status === 'warning' ? 'bg-amber-950/20 border-amber-900/50 shadow-amber-900/20' :
+                  'bg-emerald-950/20 border-emerald-900/50 shadow-emerald-900/20'
+                }`}>
+                  <div className="flex justify-between items-end mb-4">
+                    <div>
+                       <span className={`text-[10px] font-bold uppercase tracking-widest block mb-1 ${
                         prediction.shield_status === 'danger' ? 'text-red-500' :
                         prediction.shield_status === 'warning' ? 'text-amber-500' :
                         'text-emerald-500'
                       }`}>
-                        {prediction.shield_status === 'danger' ? 'Critical Scam Risk' :
-                         prediction.shield_status === 'warning' ? 'Suspicious Store' : 'Verified Merchant'}
+                        {prediction.shield_status === 'danger' ? 'Scam Alert' :
+                         prediction.shield_status === 'warning' ? 'Suspicious' : 'Verified'}
                       </span>
-                      <span className="text-xs font-mono text-zinc-400">{(prediction.fraud_probability * 100).toFixed(1)}%</span>
+                      {/* Format the amount correctly based on country */}
+                      <span className="text-xl font-semibold text-white tracking-tight">
+                        {formatCurrency(checkoutAmount || 0)}
+                      </span>
                     </div>
-                    
-                    <div className="w-full h-1.5 bg-zinc-900 rounded-full mb-4 overflow-hidden">
-                      <div className={`h-full rounded-full transition-all duration-1000 ${
-                        prediction.shield_status === 'danger' ? 'bg-red-500' :
-                        prediction.shield_status === 'warning' ? 'bg-amber-500' :
-                        'bg-emerald-500'
-                      }`} style={{ width: `${Math.max(prediction.fraud_probability * 100, 2)}%` }}></div>
-                    </div>
-
-                    <p className="text-xs text-zinc-300 leading-relaxed">
-                      {prediction.advisory}
-                    </p>
+                    <span className="text-xs font-mono font-medium text-zinc-400 bg-[#09090b] px-2 py-1 rounded border border-zinc-800">
+                      Risk: {(prediction.fraud_probability * 100).toFixed(1)}%
+                    </span>
                   </div>
-                )}
-              </div>
-            ) : (
-              /* CHATBOT UI */
-              <div className="flex-1 flex flex-col bg-[#09090b] animate-fade-in">
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {chatMessages.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[90%] rounded-xl px-3 py-2 text-xs leading-relaxed ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-[#121212] border border-zinc-800 text-zinc-200 rounded-tl-sm'}`}>
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <form onSubmit={handleChatSubmit} className="p-3 bg-[#121212] border-t border-zinc-800 flex gap-2">
-                  <input 
-                    type="text" value={currentChatMessage} onChange={(e) => setCurrentChatMessage(e.target.value)} 
-                    placeholder="Ask about this site..." 
-                    className="flex-1 bg-[#09090b] border border-zinc-800 rounded-md text-xs px-3 py-2 text-white outline-none focus:border-blue-500" 
-                  />
-                  <button type="submit" className="bg-white text-black p-2 rounded-md hover:bg-zinc-200 transition-colors">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" /></svg>
-                  </button>
-                </form>
-              </div>
-            )}
+                  
+                  <div className="w-full h-1.5 bg-[#09090b] rounded-full mb-4 overflow-hidden border border-zinc-800/50">
+                    <div className={`h-full rounded-full transition-all duration-1000 ease-out ${
+                      prediction.shield_status === 'danger' ? 'bg-red-500' :
+                      prediction.shield_status === 'warning' ? 'bg-amber-500' :
+                      'bg-emerald-500'
+                    }`} style={{ width: `${Math.max(prediction.fraud_probability * 100, 2)}%` }}></div>
+                  </div>
 
-            {/* BOTTOM NAV BAR */}
-            <div className="flex border-t border-zinc-800 bg-[#121212] shrink-0">
-              <button 
-                onClick={() => setIsChatOpen(false)} 
-                className={`flex-1 py-3 text-[11px] font-semibold uppercase tracking-wider transition-colors ${!isChatOpen ? 'text-blue-500 bg-blue-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}
-              >
-                Scan Engine
-              </button>
-              <button 
-                onClick={() => setIsChatOpen(true)} 
-                className={`flex-1 py-3 text-[11px] font-semibold uppercase tracking-wider transition-colors border-l border-zinc-800 ${isChatOpen ? 'text-blue-500 bg-blue-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}
-              >
-                Safety AI Chat
-              </button>
+                  {/* Added break-words to ensure text never overflows the box */}
+                  <p className="text-[11px] text-zinc-300 leading-relaxed break-words">
+                    {prediction.advisory}
+                  </p>
+                </div>
+              )}
             </div>
+          ) : (
+            /* CHATBOT UI */
+            <div className="flex-1 flex flex-col bg-[#09090b] animate-fade-in overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {/* Ensure long chat messages break properly and don't stretch the screen */}
+                    <div className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-[11px] leading-relaxed break-words shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-[#121212] border border-zinc-800 text-zinc-200 rounded-tl-sm'}`}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <form onSubmit={handleChatSubmit} className="p-3 bg-[#121212] border-t border-zinc-800 flex gap-2 shrink-0">
+                <input 
+                  type="text" value={currentChatMessage} onChange={(e) => setCurrentChatMessage(e.target.value)} 
+                  placeholder="Ask for safety advice..." 
+                  className="flex-1 bg-[#09090b] border border-zinc-800 rounded-lg text-xs px-3 py-2.5 text-white outline-none focus:border-blue-500 transition-colors" 
+                />
+                <button type="submit" disabled={!currentChatMessage} className="bg-white text-black px-3.5 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:hover:bg-white flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" /></svg>
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* BOTTOM NAV BAR */}
+          <div className="flex border-t border-zinc-800 bg-[#121212] shrink-0">
+            <button 
+              onClick={() => setIsChatOpen(false)} 
+              className={`flex-1 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-colors ${!isChatOpen ? 'text-blue-500 bg-blue-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              Scan Engine
+            </button>
+            <button 
+              onClick={() => setIsChatOpen(true)} 
+              className={`flex-1 py-3.5 text-[10px] font-bold uppercase tracking-widest transition-colors border-l border-zinc-800 ${isChatOpen ? 'text-blue-500 bg-blue-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              Safety AI Chat
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
