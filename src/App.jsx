@@ -213,6 +213,13 @@ function App() {
         })
       });
 
+      // NEW: Catch expired tokens
+      if (response.status === 401) {
+        setIsLoggedIn(false);
+        setToken(null);
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
         setAiInsightResponse(data.response);
@@ -247,6 +254,13 @@ function App() {
           message: userMsg
         })
       });
+
+      // NEW: Catch expired tokens
+      if (response.status === 401) {
+        setIsLoggedIn(false);
+        setToken(null);
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
