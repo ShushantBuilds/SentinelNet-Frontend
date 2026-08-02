@@ -24,6 +24,15 @@ function App() {
   const [history, setHistory] = useState([]); 
   const [currentMetadata, setCurrentMetadata] = useState([]); 
 
+  // --- NEW AI STATES ---
+  const [aiInsightQuery, setAiInsightQuery] = useState('');
+  const [aiInsightResponse, setAiInsightResponse] = useState('');
+  const [isAiThinking, setIsAiThinking] = useState(false);
+
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([{ role: 'system', content: 'SentinelNet AI Assistant online. How can I assist you today?' }]);
+  const [currentChatMessage, setCurrentChatMessage] = useState('');
+
   const handleAuth = async (e) => {
     e.preventDefault();
     setAuthError('');
@@ -184,6 +193,70 @@ function App() {
     runFraudCheck([amount, ...syntheticMetadata]);
   };
 
+  // --- NEW AI INSIGHT LOGIC ---
+  const handleAiInsightRequest = async () => {
+    if (!aiInsightQuery) return;
+    setIsAiThinking(true);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/ai/`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ 
+          type: 'insight',
+          query: aiInsightQuery,
+          history: history,
+          budget: monthlyBudget
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAiInsightResponse(data.response);
+      } else {
+        setAiInsightResponse("Error: Unable to connect to SentinelNet AI Core.");
+      }
+    } catch (error) {
+      setAiInsightResponse("System offline.");
+    } finally {
+      setIsAiThinking(false);
+    }
+  };
+
+  // --- NEW AI CHATBOT LOGIC ---
+  const handleChatSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentChatMessage) return;
+
+    const userMsg = currentChatMessage;
+    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setCurrentChatMessage('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/ai/`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ 
+          type: 'chat',
+          message: userMsg
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setChatMessages(prev => [...prev, { role: 'system', content: data.response }]);
+      }
+    } catch (error) {
+      setChatMessages(prev => [...prev, { role: 'system', content: "Error connecting to AI." }]);
+    }
+  };
+
   // --- VIEW 1: LANDING PAGE ---
   if (showLanding && !isLoggedIn) {
     return (
@@ -320,13 +393,13 @@ function App() {
         </button>
       </header>
 
-      <main className="flex-1 overflow-hidden p-6">
+      <main className="flex-1 overflow-hidden p-6 relative">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full max-w-[1600px] mx-auto">
           
           {/* COLUMN 1: CONTROLS & PROFILE */}
-          <div className="lg:col-span-3 flex flex-col gap-6 h-full">
+          <div className="lg:col-span-3 flex flex-col h-full overflow-y-auto pr-2 pb-4 space-y-6 custom-scrollbar">
             
-            <div className="bg-[#121212] rounded-xl border border-zinc-800 p-5 flex-shrink-0">
+            <div className="bg-[#121212] rounded-xl border border-zinc-800 p-5 shrink-0">
               <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest mb-6">Financial Profile</h2>
               
               <div className="mb-5">
@@ -365,7 +438,7 @@ function App() {
               </form>
             </div>
 
-            <div className="bg-[#121212] rounded-xl border border-zinc-800 p-5 flex-shrink-0">
+            <div className="bg-[#121212] rounded-xl border border-zinc-800 p-5 shrink-0">
               <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest mb-4">Engine Mode</h2>
               <div className="flex bg-[#09090b] p-1 rounded-md border border-zinc-800">
                 <button onClick={() => setMode('stream')} className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${mode === 'stream' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>Live Stream</button>
@@ -374,7 +447,7 @@ function App() {
             </div>
 
             {mode === 'manual' && (
-              <div className="bg-[#121212] rounded-xl border border-zinc-800 p-5 flex-shrink-0 animate-fade-in">
+              <div className="bg-[#121212] rounded-xl border border-zinc-800 p-5 shrink-0 animate-fade-in">
                 <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest mb-4">Manual Scan</h2>
                 <form onSubmit={handleManualSubmit} className="space-y-3">
                   <input 
@@ -389,6 +462,31 @@ function App() {
                 </form>
               </div>
             )}
+
+            {/* NEW AI ADVISORY INPUT PANEL */}
+            <div className="bg-[#121212] rounded-xl border border-zinc-800 p-5 shrink-0">
+              <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest mb-4">AI Advisory Query</h2>
+              <textarea 
+                value={aiInsightQuery}
+                onChange={(e) => setAiInsightQuery(e.target.value)}
+                placeholder="Ask the engine to analyze current risk vectors..."
+                className="w-full bg-[#09090b] border border-zinc-800 rounded-md p-3 text-xs text-white focus:outline-none focus:border-zinc-500 transition-all resize-none h-20 placeholder-zinc-700"
+              />
+              <button 
+                onClick={handleAiInsightRequest} 
+                disabled={isAiThinking || !aiInsightQuery}
+                className="w-full mt-3 bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded-md text-xs font-medium transition-colors disabled:opacity-50 active:scale-95"
+              >
+                {isAiThinking ? 'Processing Context...' : 'Generate Insight'}
+              </button>
+              
+              {aiInsightResponse && (
+                <div className="mt-4 p-4 bg-zinc-900/50 border border-zinc-800 rounded-md animate-fade-in">
+                  <p className="text-[11px] text-zinc-300 leading-relaxed whitespace-pre-wrap">{aiInsightResponse}</p>
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* COLUMN 2: AI ANALYSIS RESULTS */}
@@ -405,7 +503,7 @@ function App() {
                 </div>
               )}
 
-              {/* NEW SKELETON LOADER */}
+              {/* SKELETON LOADER */}
               {status === 'loading' && (
                 <div className="w-full space-y-6 animate-pulse">
                   <div className="pb-6 border-b border-zinc-800/50">
@@ -491,7 +589,6 @@ function App() {
           {/* COLUMN 3: LIVE CHART & AUDIT LOG */}
           <div className="lg:col-span-5 bg-[#121212] rounded-xl border border-zinc-800 flex flex-col h-full overflow-hidden">
             
-            {/* NEW LIVE RECHARTS GRAPH */}
             <div className="h-48 w-full border-b border-zinc-800 p-5 shrink-0 flex flex-col bg-[#09090b]">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">Risk Velocity Chart</h2>
@@ -531,7 +628,6 @@ function App() {
               </div>
             </div>
 
-            {/* TABLE LOGS */}
             <div className="p-4 border-b border-zinc-800 shrink-0 bg-[#121212] flex justify-between items-center">
                <h2 className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">Network Audit Log</h2>
             </div>
@@ -573,8 +669,50 @@ function App() {
               )}
             </div>
           </div>
-
         </div>
+
+        {/* NEW FLOATING AI ASSISTANT */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+          {isChatOpen && (
+            <div className="bg-[#121212] border border-zinc-800 rounded-xl w-80 h-96 mb-4 shadow-2xl flex flex-col overflow-hidden animate-fade-in">
+              <div className="bg-[#09090b] border-b border-zinc-800 p-4 flex justify-between items-center">
+                <span className="text-xs font-semibold text-white tracking-wide">Operator Support</span>
+                <button onClick={() => setIsChatOpen(false)} className="text-zinc-500 hover:text-white text-xs transition-colors">✕</button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-md p-2.5 text-[11px] ${msg.role === 'user' ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-200'}`}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="p-3 bg-[#09090b] border-t border-zinc-800">
+                <form onSubmit={handleChatSubmit} className="flex gap-2">
+                  <input 
+                    type="text" value={currentChatMessage} onChange={(e) => setCurrentChatMessage(e.target.value)}
+                    placeholder="Type a command..." 
+                    className="flex-1 bg-[#121212] border border-zinc-800 rounded-md text-xs px-3 py-2 text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                  <button type="submit" className="bg-white text-black px-3 py-2 rounded-md text-xs font-medium hover:bg-zinc-200 transition-colors">→</button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          <button 
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className="h-12 w-12 bg-white text-black rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+          </button>
+        </div>
+
       </main>
     </div>
   )
