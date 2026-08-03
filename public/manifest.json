@@ -13,6 +13,9 @@
     "tabs",
     "scripting"
   ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "icons": {
     "16": "fraud-detection.png",
     "48": "fraud-detection.png",
