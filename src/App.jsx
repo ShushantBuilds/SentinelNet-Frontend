@@ -1,3 +1,4 @@
+/*global chrome*/
 import { useState, useEffect } from 'react'
 
 const API_BASE_URL = 'https://sentinelnet-backend.onrender.com';
@@ -10,6 +11,7 @@ function App() {
   const [authError, setAuthError] = useState('');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false); 
+  const [pageContext, setPageContext] = useState('');
 
   const [status, setStatus] = useState('idle');
   const [prediction, setPrediction] = useState(null);
@@ -23,6 +25,42 @@ function App() {
 
   // --- NEW: AUTO-CURRENCY STATE ---
   const [localeData, setLocaleData] = useState({ locale: 'en-US', currency: 'USD', symbol: '$' });
+
+  useEffect(() => {
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        // 1. Get Domain URL
+        const domain = new URL(tabs[0].url).hostname.replace('www.', '');
+        setCurrentUrl(domain);
+
+        // 2. Inject a scraper to read the active webpage content
+        chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          func: () => {
+            // Extract title, meta description, and first 3,000 characters of page text
+            const title = document.title || '';
+            const metaDesc = document.querySelector('meta[name="description"]')?.content || '';
+            const bodyText = document.body.innerText.replace(/\s+/g, ' ').trim();
+            
+            return {
+              title,
+              metaDesc,
+              // Truncate text so we don't overwhelm the token limit unnecessarily
+              sampleText: bodyText.slice(0, 3000) 
+            };
+          }
+        }, (results) => {
+          if (results && results[0]?.result) {
+            const data = results[0].result;
+            const fullContext = `Page Title: ${data.title}\nMeta Description: ${data.metaDesc}\nPage Text Sample:\n${data.sampleText}`;
+            setPageContext(fullContext);
+          }
+        });
+      }
+    });
+  }
+}, []);
 
   useEffect(() => {
     // 1. EXTENSION AUTO-URL DETECTION
@@ -131,7 +169,7 @@ function App() {
       const response = await fetch(`${API_BASE_URL}/api/v1/ai/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ type: 'chat', message: userMsg })
+        body: JSON.stringify({ type: 'chat', message: userMsg, page_context: pageContext, url: currentUrl })
       });
       if (response.status === 401) { setIsLoggedIn(false); setToken(null); return; }
       if (response.ok) {
