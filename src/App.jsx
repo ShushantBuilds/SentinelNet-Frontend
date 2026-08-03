@@ -22,6 +22,7 @@ function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([{ role: 'system', content: 'SentinelNet Shield active. Ask me about a store or checkout risk.' }]);
   const [currentChatMessage, setCurrentChatMessage] = useState('');
+  const [pageType, setPageType] = useState('general');
 
   // --- NEW: AUTO-CURRENCY STATE ---
   const [localeData, setLocaleData] = useState({ locale: 'en-US', currency: 'USD', symbol: '$' });
@@ -60,6 +61,97 @@ function App() {
       }
     });
   }
+}, []);
+
+useEffect(() => {
+  // 1. EXTENSION AUTO-DETECTION & SMART ROUTING
+  if (typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        // Extract domain name
+        const domain = new URL(tabs[0].url).hostname.replace('www.', '');
+        setCurrentUrl(domain);
+
+        // Run the Smart Payment Detector on the active tab
+        chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          func: () => {
+            const url = window.location.href.toLowerCase();
+            
+            // Check 1: URL Keywords
+            const isPaymentUrl = ['checkout', 'pay', 'cart', 'billing', 'buy', 'order'].some(kw => url.includes(kw));
+
+            // Check 2: Credit Card / Payment Inputs
+            const hasCardInputs = !!document.querySelector(
+              'input[autocomplete*="cc-"], input[name*="card"], input[name*="cvv"], input[id*="card"], input[placeholder*="card"]'
+            );
+
+            // Check 3: Payment iFrames (Stripe, PayPal, Razorpay, etc.)
+            const hasPaymentIframe = !!document.querySelector(
+              'iframe[src*="stripe"], iframe[src*="paypal"], iframe[src*="razorpay"], iframe[src*="checkout"]'
+            );
+
+            // Check 4: Payment / Checkout Buttons
+            const hasPayButton = Array.from(document.querySelectorAll('button, a, input[type="submit"]')).some(btn => {
+              const text = (btn.innerText || btn.value || '').toLowerCase();
+              return text.includes('place order') || 
+                     text.includes('pay now') || 
+                     text.includes('proceed to checkout') || 
+                     text.includes('complete purchase');
+            });
+
+            // Also scrape page text for Gemini context
+            const title = document.title || '';
+            const metaDesc = document.querySelector('meta[name="description"]')?.content || '';
+            const bodyText = document.body.innerText.replace(/\s+/g, ' ').trim().slice(0, 3000);
+
+            return {
+              isPaymentPage: isPaymentUrl || hasCardInputs || hasPaymentIframe || hasPayButton,
+              pageContext: `Page Title: ${title}\nMeta Description: ${metaDesc}\nPage Text Sample:\n${bodyText}`
+            };
+          }
+        }, (results) => {
+          if (results && results[0]?.result) {
+            const { isPaymentPage, pageContext } = results[0].result;
+            
+            // Set extracted page text for Gemini AI
+            setPageContext(pageContext);
+
+            // SMART ROUTING LOGIC:
+            if (isPaymentPage) {
+              setIsChatOpen(false);
+              setPageType('checkout'); // Open Checkout Shield (Scan Engine)
+            } else {
+              setIsChatOpen(true);
+              setPageType('general');  // Open Safety AI Chatbot
+            }
+          }
+        });
+      }
+    });
+  } else {
+    // Fallback for local browser testing (non-extension)
+    setCurrentUrl('demo-store.com');
+  }
+
+  // 2. DYNAMIC CURRENCY DETECTION
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const userLocale = navigator.language || 'en-US';
+  
+  let detectedCurrency = 'USD';
+  let detectedSymbol = '$';
+
+  if (timezone.includes('Calcutta') || timezone.includes('Kolkata') || userLocale.includes('IN')) {
+    detectedCurrency = 'INR'; detectedSymbol = '₹';
+  } else if (timezone.includes('Europe/London') || userLocale.includes('GB')) {
+    detectedCurrency = 'GBP'; detectedSymbol = '£';
+  } else if (timezone.includes('Europe')) {
+    detectedCurrency = 'EUR'; detectedSymbol = '€';
+  } else if (timezone.includes('Australia')) {
+    detectedCurrency = 'AUD'; detectedSymbol = 'A$';
+  }
+
+  setLocaleData({ locale: userLocale, currency: detectedCurrency, symbol: detectedSymbol });
 }, []);
 
   useEffect(() => {
@@ -190,10 +282,25 @@ function App() {
       {/* HEADER */}
       <div className="bg-[#121212] border-b border-zinc-800 p-4 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center shadow-lg shadow-blue-900/50">
-            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/50 shrink-0">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
           </div>
-          <h1 className="text-[15px] font-semibold text-white tracking-tight">SentinelNet Shield</h1>
+          <div className="flex flex-col justify-center">
+            <h1 className="text-[15px] font-semibold text-white tracking-tight leading-none mb-1.5">SentinelNet Shield</h1>
+            {isLoggedIn && (
+              pageType === 'checkout' ? (
+                <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold text-emerald-400 uppercase tracking-widest">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Checkout Detected
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold text-blue-400 uppercase tracking-widest">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                  General Browsing
+                </span>
+              )
+            )}
+          </div>
         </div>
         {isLoggedIn && (
           <button onClick={() => {setIsLoggedIn(false); setToken(null); setPrediction(null); setStatus('idle');}} className="text-[11px] font-medium text-zinc-500 hover:text-white transition-colors border border-zinc-800 px-2.5 py-1 rounded-md bg-zinc-900">
