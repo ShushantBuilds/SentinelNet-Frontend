@@ -1,5 +1,6 @@
 /*global chrome*/
 import { useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 
 const API_BASE_URL = 'https://sentinelnet-backend.onrender.com';
 
@@ -410,7 +411,16 @@ useEffect(() => {
                 <div className="mb-6 p-4 bg-indigo-950/20 border border-indigo-900/50 rounded-xl animate-fade-in shadow-xl shadow-indigo-900/10">
                   <h3 className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">SentinelNet Verdict</h3>
                   <div className="text-[11px] text-zinc-300 leading-relaxed whitespace-pre-wrap">
-                    {dealAnalytics}
+                    <ReactMarkdown 
+                      components={{
+                        p: ({node, ...props}) => <p className="mb-3 last:mb-0" {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-semibold text-indigo-300" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-3 space-y-1.5" {...props} />,
+                        li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
+                      }}
+                    >
+                      {dealAnalytics}
+                    </ReactMarkdown>
                   </div>
                 </div>
               )}
@@ -474,7 +484,21 @@ useEffect(() => {
                   <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     {/* Ensure long chat messages break properly and don't stretch the screen */}
                     <div className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-[11px] leading-relaxed break-words shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-[#121212] border border-zinc-800 text-zinc-200 rounded-tl-sm'}`}>
-                      {msg.content}
+                      <ReactMarkdown 
+                        components={{
+                          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                          strong: ({node, ...props}) => <strong className="font-semibold text-white" {...props} />,
+                          em: ({node, ...props}) => <em className="italic text-zinc-300" {...props} />,
+                          ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
+                          ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
+                          li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
+                          h1: ({node, ...props}) => <h1 className="font-bold text-[13px] text-white mt-3 mb-1" {...props} />,
+                          h2: ({node, ...props}) => <h2 className="font-bold text-[12px] text-white mt-3 mb-1" {...props} />,
+                          h3: ({node, ...props}) => <h3 className="font-bold text-[11px] text-white mt-3 mb-1 uppercase tracking-wider" {...props} />,
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
                     </div>
                   </div>
                 ))}
