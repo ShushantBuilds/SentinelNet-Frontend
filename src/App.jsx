@@ -12,6 +12,9 @@ function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false); 
   const [pageContext, setPageContext] = useState('');
+  const [pastedLink, setPastedLink] = useState('');
+  const [dealAnalytics, setDealAnalytics] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const [status, setStatus] = useState('idle');
   const [prediction, setPrediction] = useState(null);
@@ -250,6 +253,36 @@ useEffect(() => {
     }
   };
 
+  const analyzeDeal = async (e) => {
+    e.preventDefault();
+    if (!pastedLink) return;
+    setIsAnalyzing(true);
+    setDealAnalytics(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/ai/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ 
+          type: 'analyze_deal', 
+          product_url: pastedLink,
+          page_context: pageContext 
+        })
+      });
+      
+      if (response.status === 401) { setIsLoggedIn(false); setToken(null); return; }
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDealAnalytics(data.response);
+      }
+    } catch (error) {
+      setDealAnalytics("Failed to analyze the deal. Check network connection.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleChatSubmit = async (e) => {
     e.preventDefault();
     if (!currentChatMessage) return;
@@ -357,6 +390,30 @@ useEffect(() => {
                   </button>
                 </div>
               </form>
+
+              {/* NEW: PRODUCT LINK ANALYZER */}
+              <form onSubmit={analyzeDeal} className="mb-6 pt-6 border-t border-zinc-800/50">
+                <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest block mb-2">Analyze Product Value</label>
+                <div className="flex flex-col gap-3">
+                  <input 
+                    type="url" placeholder="Paste product or checkout link here..." value={pastedLink} onChange={(e) => setPastedLink(e.target.value)}
+                    className="w-full bg-[#121212] border border-zinc-800 rounded-lg px-3 py-3 text-xs text-white outline-none focus:border-blue-500 transition-colors" required
+                  />
+                  <button type="submit" disabled={isAnalyzing || !pastedLink} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50">
+                    {isAnalyzing ? 'Analyzing Deal...' : 'Get Purchase Advice'}
+                  </button>
+                </div>
+              </form>
+
+              {/* DEAL ANALYTICS RESULT CARD */}
+              {dealAnalytics && (
+                <div className="mb-6 p-4 bg-indigo-950/20 border border-indigo-900/50 rounded-xl animate-fade-in shadow-xl shadow-indigo-900/10">
+                  <h3 className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">SentinelNet Verdict</h3>
+                  <div className="text-[11px] text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                    {dealAnalytics}
+                  </div>
+                </div>
+              )}
 
               {status === 'loading' && (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
