@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SentinelNet Shield",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI-powered checkout protection against e-commerce fraud and phishing.",
   "action": {
     "default_popup": "index.html",
@@ -9,11 +9,11 @@
   },
   "permissions": [
     "activeTab",
-    "storage",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "*://*/*"
   ],
   "icons": {
     "16": "fraud-detection.png",
